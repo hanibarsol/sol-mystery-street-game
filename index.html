@@ -628,8 +628,7 @@
     else if(k === "ArrowLeft" || k === "a" || k === "A") KEYS.left = val;
     else if(k === "ArrowRight" || k === "d" || k === "D") KEYS.right = val;
   }
-  var JOY = { x:0, y:0 };
-  var JOY_TARGET = { x:0, y:0 };
+  var DRAG_TARGET = { x:0, y:0, active:false };
 
   var game = { playerKey:null, roomIndex:0, score:0, keysFound:[], correctKeyRoom:null, playing:false, roomList:[] };
   var rt = null;
@@ -687,7 +686,6 @@
         "<img class='sprite cat' id='catSprite' src='" + IMAGES.la + "' alt=''>" +
         "<div class='mount-scooter' id='mountScooter' hidden></div>" +
         "<img class='sprite' id='playerSprite' src='" + IMAGES[game.playerKey] + "' alt=''>" +
-        "<div class='joystick-base' id='joyBase'><div class='joystick-knob' id='joyKnob'></div></div>" +
         "<div class='toast' id='toast'></div>" +
       "</div>";
 
@@ -761,50 +759,31 @@
     propEl.innerHTML = propHTML(roomKey);
     arenaEl.appendChild(propEl);
 
-    var joyBase = document.getElementById("joyBase");
-    var joyKnob = document.getElementById("joyKnob");
-    var joyActive = false, joyId = null, joyMaxDist = 62, joyDeadzone = 6, joyCenter = {x:0, y:0};
-    // Floating joystick: touching/dragging ANYWHERE in the arena moves the character — not just
-    // a fixed 88px circle pinned to one corner. The joystick visual appears right where the
-    // finger touched down, for feedback, but the whole arena is the real control surface.
-    arenaEl.addEventListener("pointerdown", function(e){
-      joyActive = true; joyId = e.pointerId;
-      arenaEl.setPointerCapture(e.pointerId);
+    var dragId = null;
+    // Direct drag-to-follow: touch anywhere in the arena and the character heads straight for
+    // your finger, tracking it closely as you move — no joystick steering, no speed mismatch.
+    function updateDragTarget(e){
       var rect = arenaEl.getBoundingClientRect();
-      joyCenter.x = e.clientX - rect.left;
-      joyCenter.y = e.clientY - rect.top;
-      joyBase.style.left = joyCenter.x + "px";
-      joyBase.style.top = joyCenter.y + "px";
-      joyBase.classList.add("active");
-      joyKnob.style.left = "24px"; joyKnob.style.top = "24px";
+      DRAG_TARGET.x = e.clientX - rect.left;
+      DRAG_TARGET.y = e.clientY - rect.top - 34;
+      DRAG_TARGET.active = true;
+    }
+    arenaEl.addEventListener("pointerdown", function(e){
+      dragId = e.pointerId;
+      arenaEl.setPointerCapture(e.pointerId);
+      updateDragTarget(e);
     });
     arenaEl.addEventListener("pointermove", function(e){
-      if(!joyActive || e.pointerId !== joyId) return;
-      var rect = arenaEl.getBoundingClientRect();
-      var dx = (e.clientX - rect.left) - joyCenter.x, dy = (e.clientY - rect.top) - joyCenter.y;
-      var rawDist = Math.sqrt(dx*dx+dy*dy);
-      var dist = Math.min(rawDist, joyMaxDist);
-      var ang = Math.atan2(dy, dx);
-      var nx = Math.cos(ang) * dist, ny = Math.sin(ang) * dist;
-      joyKnob.style.left = (24 + nx) + "px";
-      joyKnob.style.top = (24 + ny) + "px";
-      if(rawDist < joyDeadzone){
-        JOY_TARGET.x = 0; JOY_TARGET.y = 0;
-      } else {
-        var usable = joyMaxDist - joyDeadzone;
-        var eased = Math.min(1, (dist - joyDeadzone) / usable);
-        JOY_TARGET.x = Math.cos(ang) * eased;
-        JOY_TARGET.y = Math.sin(ang) * eased;
-      }
+      if(e.pointerId !== dragId) return;
+      updateDragTarget(e);
     });
-    function joyEnd(e){
-      if(e.pointerId !== joyId) return;
-      joyActive = false; JOY_TARGET.x = 0; JOY_TARGET.y = 0;
-      joyBase.classList.remove("active");
-      joyKnob.style.left = "24px"; joyKnob.style.top = "24px";
+    function dragEnd(e){
+      if(e.pointerId !== dragId) return;
+      dragId = null;
+      DRAG_TARGET.active = false;
     }
-    arenaEl.addEventListener("pointerup", joyEnd);
-    arenaEl.addEventListener("pointercancel", joyEnd);
+    arenaEl.addEventListener("pointerup", dragEnd);
+    arenaEl.addEventListener("pointercancel", dragEnd);
 
     rt = {
       arenaEl: arenaEl, w:w, h:h,
@@ -1001,29 +980,43 @@
   }
 
   function update(dt, ts){
-    var joySmoothing = Math.min(1, dt * 16);
-    JOY.x += (JOY_TARGET.x - JOY.x) * joySmoothing;
-    JOY.y += (JOY_TARGET.y - JOY.y) * joySmoothing;
-    if(Math.abs(JOY.x) < 0.001) JOY.x = 0;
-    if(Math.abs(JOY.y) < 0.001) JOY.y = 0;
-    var vx = 0, vy = 0;
-    if(JOY.x || JOY.y){ vx = JOY.x; vy = JOY.y; }
-    else {
+    if(rt.playerEl.classList.contains("boosted") && ts >= rt.speedUntil) rt.playerEl.classList.remove("boosted");
+    if(rt.playerEl.classList.contains("shielded") && ts >= rt.shieldUntil) rt.playerEl.classList.remove("shielded");
+    var isBoosted = ts < rt.speedUntil;
+    var moved = false;
+
+    if(DRAG_TARGET.active){
+      // Direct drag-to-follow: chase the finger's exact position every frame, fast enough
+      // that a normal drag speed never outruns the character — no joystick, no lag.
+      var tx = Math.max(rt.player.r, Math.min(rt.w - rt.player.r, DRAG_TARGET.x));
+      var ty = Math.max(rt.player.r, Math.min(rt.h - rt.player.r, DRAG_TARGET.y));
+      var ddx = tx - rt.player.x, ddy = ty - rt.player.y;
+      var ddist = Math.sqrt(ddx*ddx + ddy*ddy);
+      var followSpeed = 900 * (isBoosted ? 1.6 : 1);
+      var step = followSpeed * dt;
+      if(ddist <= step || ddist === 0){
+        rt.player.x = tx; rt.player.y = ty;
+      } else {
+        rt.player.x += (ddx / ddist) * step;
+        rt.player.y += (ddy / ddist) * step;
+      }
+      moved = ddist > 1;
+    } else {
+      var vx = 0, vy = 0;
       if(KEYS.left) vx -= 1;
       if(KEYS.right) vx += 1;
       if(KEYS.up) vy -= 1;
       if(KEYS.down) vy += 1;
+      var len = Math.sqrt(vx*vx + vy*vy);
+      if(len > 1){ vx /= len; vy /= len; }
+      var speed = 190 * (isBoosted ? 2.3 : 1);
+      rt.player.x = Math.max(rt.player.r, Math.min(rt.w - rt.player.r, rt.player.x + vx * speed * dt));
+      rt.player.y = Math.max(rt.player.r, Math.min(rt.h - rt.player.r, rt.player.y + vy * speed * dt));
+      moved = !!(vx || vy);
     }
-    var len = Math.sqrt(vx*vx + vy*vy);
-    if(len > 1){ vx /= len; vy /= len; }
-    if(rt.playerEl.classList.contains("boosted") && ts >= rt.speedUntil) rt.playerEl.classList.remove("boosted");
-    if(rt.playerEl.classList.contains("shielded") && ts >= rt.shieldUntil) rt.playerEl.classList.remove("shielded");
-    var isBoosted = ts < rt.speedUntil;
-    var speed = 190 * (isBoosted ? 2.3 : 1);
-    rt.player.x = Math.max(rt.player.r, Math.min(rt.w - rt.player.r, rt.player.x + vx * speed * dt));
-    rt.player.y = Math.max(rt.player.r, Math.min(rt.h - rt.player.r, rt.player.y + vy * speed * dt));
+
     rt.playerEl.style.transform = "translate(" + (rt.player.x - 34) + "px," + (rt.player.y - 34) + "px)";
-    if(isBoosted && (vx || vy) && ts - rt.lastTrailTs > 50){
+    if(isBoosted && moved && ts - rt.lastTrailTs > 50){
       spawnSpeedTrail(rt.player.x, rt.player.y);
       rt.lastTrailTs = ts;
     }
