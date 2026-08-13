@@ -629,6 +629,7 @@
     else if(k === "ArrowRight" || k === "d" || k === "D") KEYS.right = val;
   }
   var JOY = { x:0, y:0 };
+  var JOY_TARGET = { x:0, y:0 };
 
   var game = { playerKey:null, roomIndex:0, score:0, keysFound:[], correctKeyRoom:null, playing:false, roomList:[] };
   var rt = null;
@@ -762,7 +763,7 @@
 
     var joyBase = document.getElementById("joyBase");
     var joyKnob = document.getElementById("joyKnob");
-    var joyActive = false, joyId = null, joyMaxDist = 44, joyCenter = {x:0, y:0};
+    var joyActive = false, joyId = null, joyMaxDist = 62, joyDeadzone = 6, joyCenter = {x:0, y:0};
     // Floating joystick: touching/dragging ANYWHERE in the arena moves the character — not just
     // a fixed 88px circle pinned to one corner. The joystick visual appears right where the
     // finger touched down, for feedback, but the whole arena is the real control surface.
@@ -781,17 +782,24 @@
       if(!joyActive || e.pointerId !== joyId) return;
       var rect = arenaEl.getBoundingClientRect();
       var dx = (e.clientX - rect.left) - joyCenter.x, dy = (e.clientY - rect.top) - joyCenter.y;
-      var dist = Math.min(Math.sqrt(dx*dx+dy*dy), joyMaxDist);
+      var rawDist = Math.sqrt(dx*dx+dy*dy);
+      var dist = Math.min(rawDist, joyMaxDist);
       var ang = Math.atan2(dy, dx);
       var nx = Math.cos(ang) * dist, ny = Math.sin(ang) * dist;
       joyKnob.style.left = (24 + nx) + "px";
       joyKnob.style.top = (24 + ny) + "px";
-      JOY.x = nx / joyMaxDist;
-      JOY.y = ny / joyMaxDist;
+      if(rawDist < joyDeadzone){
+        JOY_TARGET.x = 0; JOY_TARGET.y = 0;
+      } else {
+        var usable = joyMaxDist - joyDeadzone;
+        var eased = Math.min(1, (dist - joyDeadzone) / usable);
+        JOY_TARGET.x = Math.cos(ang) * eased;
+        JOY_TARGET.y = Math.sin(ang) * eased;
+      }
     });
     function joyEnd(e){
       if(e.pointerId !== joyId) return;
-      joyActive = false; JOY.x = 0; JOY.y = 0;
+      joyActive = false; JOY_TARGET.x = 0; JOY_TARGET.y = 0;
       joyBase.classList.remove("active");
       joyKnob.style.left = "24px"; joyKnob.style.top = "24px";
     }
@@ -993,6 +1001,11 @@
   }
 
   function update(dt, ts){
+    var joySmoothing = Math.min(1, dt * 16);
+    JOY.x += (JOY_TARGET.x - JOY.x) * joySmoothing;
+    JOY.y += (JOY_TARGET.y - JOY.y) * joySmoothing;
+    if(Math.abs(JOY.x) < 0.001) JOY.x = 0;
+    if(Math.abs(JOY.y) < 0.001) JOY.y = 0;
     var vx = 0, vy = 0;
     if(JOY.x || JOY.y){ vx = JOY.x; vy = JOY.y; }
     else {
