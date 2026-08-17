@@ -585,10 +585,28 @@
   }
 
   var audioCtx = null;
-  function ensureAudio(){ if(!audioCtx){ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } }
+  function ensureAudio(){
+    var isNew = !audioCtx;
+    if(!audioCtx){ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    if(audioCtx.state === "suspended"){ audioCtx.resume().catch(function(){}); }
+    if(isNew){
+      // Some mobile browsers (notably iOS Safari) keep the context silent until a sound has
+      // actually started playing inside the unlocking gesture — resume() alone isn't always
+      // enough. A near-silent primer tone forces the audio pipeline open right away.
+      try{
+        var primer = audioCtx.createOscillator();
+        var g = audioCtx.createGain();
+        g.gain.value = 0.0001;
+        primer.connect(g).connect(audioCtx.destination);
+        primer.start();
+        primer.stop(audioCtx.currentTime + 0.05);
+      }catch(e){}
+    }
+  }
   function tone(freq, dur, vol){
     dur = dur || 0.3; vol = vol || 0.26;
     if(!audioCtx) return;
+    if(audioCtx.state === "suspended"){ audioCtx.resume().catch(function(){}); }
     var t0 = audioCtx.currentTime;
     var osc = audioCtx.createOscillator();
     var gain = audioCtx.createGain();
