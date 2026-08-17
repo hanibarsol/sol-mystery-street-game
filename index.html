@@ -646,6 +646,7 @@
 
   var game = { playerKey:null, roomIndex:0, score:0, keysFound:[], correctKeyRoom:null, playing:false, roomList:[] };
   var rt = null;
+  var arenaResizeObserver = null;
 
   var ROOM_MELODIES = {
     do:  [261.63, 329.63, 392.00, 329.63],
@@ -830,6 +831,20 @@
     };
     updateHUD();
     showToast("אספו 5 תווים כדי לחשוף את מקום המפתח!", 2200);
+
+    // Keep rt.w/rt.h (and the player's on-screen position) accurate if the arena's actual
+    // rendered size changes after load — e.g. toggling fullscreen — otherwise movement bounds
+    // and the exit-door check (centered on rt.w/2) drift out of sync with what's on screen.
+    if(arenaResizeObserver) arenaResizeObserver.disconnect();
+    arenaResizeObserver = new ResizeObserver(function(){
+      if(!rt || rt.arenaEl !== arenaEl) return;
+      var newW = arenaEl.clientWidth, newH = arenaEl.clientHeight;
+      if(newW === rt.w && newH === rt.h) return;
+      rt.w = newW; rt.h = newH;
+      rt.player.x = Math.max(rt.player.r, Math.min(rt.w - rt.player.r, rt.player.x));
+      rt.player.y = Math.max(rt.player.r, Math.min(rt.h - rt.player.r, rt.player.y));
+    });
+    arenaResizeObserver.observe(arenaEl);
   }
 
   function updateHUD(){
