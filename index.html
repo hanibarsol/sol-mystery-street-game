@@ -420,7 +420,9 @@
   .door-key.correct{ border-color: var(--gold); background: rgba(232,185,74,.18); transform:scale(1.06); }
   .door-key:disabled{ opacity:.45; cursor:default; }
 
-  .finale{ text-align:center; display:flex; flex-direction:column; align-items:center; gap:16px; }
+  /* padding-top keeps the scale row clear of the fixed home button, which would
+     otherwise cover the left-hand דו — the very chip that shows the octave closing. */
+  .finale{ text-align:center; display:flex; flex-direction:column; align-items:center; gap:16px; padding-top:34px; }
   .scale-row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; max-width:420px; }
   .scale-chip{
     display:flex; flex-direction:column; align-items:center; gap:2px;
@@ -434,7 +436,6 @@
   .finale h2{ font-size:27px; }
   .finale p{ color: var(--ink-soft); max-width:36ch; line-height:1.6; margin:0; font-size:16.5px; }
   .finale .score-line{ font-family:var(--font-display); font-weight:700; font-size:21px; color:var(--ink); }
-  .teaser{ font-size:14.5px; color: var(--ink-soft); opacity:.8; }
 
   .confetti-piece{ position:fixed; top:-10px; width:9px; height:14px; border-radius:2px; z-index:60; pointer-events:none; }
   @media (prefers-reduced-motion: no-preference){ .confetti-piece{ animation: fall linear forwards; } }
@@ -474,7 +475,6 @@
       <div class="btn-row">
         <button class="btn" id="btn-replay">שחקו שוב מההתחלה</button>
       </div>
-      <p class="teaser">בהמשך: אוקטבה חדשה, עם אתגרים קשים יותר.</p>
     </div>
   </div>
 </div>
