@@ -183,6 +183,10 @@
   .expand-btn:hover{ background: var(--locked); }
   .expand-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
   .expand-btn:active{ transform: scale(.93); }
+  /* .expand-btn sets display, which outranks the browser rule for [hidden]. Without this
+     the button stays on screen wherever fullscreen is unavailable — iPhones, cross-origin
+     embeds — visible but wired to nothing. */
+  .expand-btn[hidden]{ display:none; }
 
   #overlay-game:fullscreen{ background: var(--bg); }
   #overlay-game:fullscreen .overlay-inner{ justify-content:center; min-height:100vh; padding:18px; }
@@ -525,6 +529,21 @@
   }
   renderHouse();
 
+  // iOS silences speechSynthesis for the life of the page unless the first utterance is
+  // spoken from inside a real gesture. Note names are read from the game loop, never from
+  // a tap, so the page never unlocks and the child hears nothing. ensureAudio() already
+  // works around the same lock for the oscillator; this does it for speech.
+  var speechPrimed = false;
+  function primeSpeech(){
+    if(speechPrimed || !window.speechSynthesis) return;
+    speechPrimed = true;
+    try{
+      var warmUp = new SpeechSynthesisUtterance(" ");
+      warmUp.volume = 0;
+      window.speechSynthesis.speak(warmUp);
+    }catch(e){}
+  }
+
   function speakNoteName(text){
     if(!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
@@ -694,6 +713,7 @@
 
   function startGame(key){
     ensureAudio();
+    primeSpeech();
     game.playerKey = key;
     game.roomList = ROOMS.filter(function(k){ return k !== key; });
     game.roomIndex = 0;
