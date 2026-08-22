@@ -331,11 +331,18 @@
     width:24px; height:5px; background: var(--gold);
     box-shadow: -6px 4px 0 -1.5px var(--gold), -11px 4px 0 -1.5px var(--gold);
   }
-  .search-spot.active{ opacity:1; }
+  /* The key used to blink to 20% opacity for half of every 0.9s cycle, so a child could
+     look straight at the floor and see nothing there. It now stays fully opaque and
+     breathes instead: the movement still pulls the eye, but the key is never absent.
+     It also sits a little larger than before, so it does not read as one more note. */
+  .search-spot.active{ opacity:1; transform: scale(1.15); }
   @media (prefers-reduced-motion: no-preference){
-    .search-spot.active{ animation: keyBlink 0.9s steps(1) infinite; }
+    .search-spot.active{ animation: keyPulse 1.2s ease-in-out infinite; }
   }
-  @keyframes keyBlink{ 0%,49%{ opacity:1; filter: drop-shadow(0 0 6px var(--gold)); } 50%,100%{ opacity:.2; filter:none; } }
+  @keyframes keyPulse{
+    0%,100%{ transform: scale(1.1); filter: drop-shadow(0 0 5px var(--gold)); }
+    50%{ transform: scale(1.32); filter: drop-shadow(0 0 15px var(--gold)) drop-shadow(0 0 26px var(--gold)); }
+  }
   .search-spot.collected{ opacity:0 !important; animation:none !important; }
 
   .note-ring{
