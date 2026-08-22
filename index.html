@@ -1261,7 +1261,8 @@
           rt.spot.active = true;
           rt.spot.el.classList.add("active");
           tone(523.25, 0.35, 0.22);
-          showToast("התו האחרון! עכשיו אפשר לחפש את המפתח", 1800);
+          // Spoken only, no toast: the players are 4-8 and a written line they cannot
+          // read fast enough was what left them standing still here in the first place.
           speakCue("עכשיו חפשו את המפתח", 1400);
         }
         checkRoomComplete();
