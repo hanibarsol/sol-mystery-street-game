@@ -459,6 +459,12 @@
   @keyframes shake{ 0%,100%{ transform: translateX(0);} 25%{ transform: translateX(-6px);} 75%{ transform: translateX(6px);} }
 
 /* ---------- Sol lesson navigation (next / previous) ---------- */
+/* Clearance for the arrows, which sit under the home button at the top-left.
+   Both screens of this lesson centre their text across the full width, so on
+   a narrow phone the first line reached the buttons: the intro paragraph on
+   the opening panel, and the room instructions once a room is entered. Both
+   start a line lower now. Nothing was reworded or resized. */
+.room-title p:not(.room-role) { margin-top: 1.6em; }
 /* Smaller than the home button: it keeps the exact corner, size and colour
    it holds on every page of the platform, and the arrows read as secondary
    to it.
@@ -522,7 +528,7 @@
 <div class="overlay is-open" id="overlay-intro">
   <div class="overlay-inner">
     <h2>מי ישחק היום?</h2>
-    <p class="sub" style="color:var(--ink-soft);font-size:16.5px;max-width:32ch">
+    <p class="sub" style="color:var(--ink-soft);font-size:16.5px;max-width:32ch;margin-top:2.2em">
       דו ורה גילו את הסוד: מפתח קסום מוסתר איפשהו בבית, ומי שימצא אותו יוכל לפתוח את הדלת הסודית בקומה השביעית.
       אספו תווים בכל חדר, אל תתנו ללה השובבה לתפוס אתכם, וחפשו את המפתח.
     </p>
