@@ -624,6 +624,22 @@
     window.speechSynthesis.speak(utter);
   }
 
+  // Spoken cues telling the child what to do next. They are triggered from the game loop
+  // at the same instant a note name is being read, so they wait their turn instead of
+  // cancelling it — a cut-off "רבע" is worse than a beat of silence. The pending cue is
+  // cleared on every room change so it can never land in the wrong room.
+  var pendingCue = null;
+  function speakCue(text, delay){
+    if(!window.speechSynthesis) return;
+    clearTimeout(pendingCue);
+    pendingCue = setTimeout(function(){
+      var cue = new SpeechSynthesisUtterance(text);
+      cue.lang = "he-IL";
+      cue.rate = 0.9;
+      window.speechSynthesis.speak(cue);
+    }, delay);
+  }
+
   var EXPAND_SVG = '<svg viewBox="0 0 24 24"><path d="M9 3H4v5M15 3h5v5M4 15v5h5M20 15v5h-5"/></svg>';
   var COLLAPSE_SVG = '<svg viewBox="0 0 24 24"><path d="M4 9h5V4M15 4v5h5M9 20v-5H4M20 15h-5v5"/></svg>';
 
@@ -799,6 +815,7 @@
   }
 
   function loadRoom(index){
+    clearTimeout(pendingCue);
     if(index >= game.roomList.length){ game.playing = false; stopBgMusic(); loadDoorStage(); return; }
     var roomKey = game.roomList[index];
     startBgMusic(ROOM_MELODIES[roomKey]);
@@ -1006,6 +1023,7 @@
       rt.exitEl.classList.add("active");
       rt.exitEl.textContent = "צאו!";
       tone(392, 0.3, 0.2);
+      speakCue("מצוין, צאו לשלב הבא", 1100);
     }
   }
 
@@ -1237,6 +1255,7 @@
           rt.spot.el.classList.add("active");
           tone(523.25, 0.35, 0.22);
           showToast("התו האחרון! עכשיו אפשר לחפש את המפתח", 1800);
+          speakCue("עכשיו חפשו את המפתח", 1400);
         }
         checkRoomComplete();
       }
