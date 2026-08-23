@@ -622,12 +622,28 @@
     }catch(e){}
   }
 
+  // Hani chose a male Hebrew voice, "Microsoft Asaf". It ships with Windows and does not
+  // exist on iOS or Android, so this is a preference rather than a requirement: wherever
+  // Asaf is missing we leave utter.voice unset and the browser picks its own Hebrew voice,
+  // exactly as before. Resolved per utterance because the list arrives asynchronously and
+  // can change while the page is open.
+  function preferredVoice(){
+    if(!window.speechSynthesis) return null;
+    var all = window.speechSynthesis.getVoices() || [];
+    for(var i = 0; i < all.length; i++){
+      if((all[i].name || "").toLowerCase().indexOf("asaf") > -1) return all[i];
+    }
+    return null;
+  }
+
   function speakNoteName(text){
     if(!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     var utter = new SpeechSynthesisUtterance(text);
     utter.lang = "he-IL";
     utter.rate = 0.9;
+    var voice = preferredVoice();
+    if(voice) utter.voice = voice;
     window.speechSynthesis.speak(utter);
   }
 
@@ -643,6 +659,8 @@
       var cue = new SpeechSynthesisUtterance(text);
       cue.lang = "he-IL";
       cue.rate = 0.9;
+      var cueVoice = preferredVoice();
+      if(cueVoice) cue.voice = cueVoice;
       window.speechSynthesis.speak(cue);
     }, delay);
   }
