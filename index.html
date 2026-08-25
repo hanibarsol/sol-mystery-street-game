@@ -458,6 +458,19 @@
   @keyframes sameGlow{ 0%,100%{ filter:none; } 50%{ filter: drop-shadow(0 0 12px var(--gold)); } }
   .finale h2{ font-size:27px; }
   .finale p{ color: var(--ink-soft); max-width:36ch; line-height:1.6; margin:0; font-size:16.5px; }
+  /* On a phone the row of characters ran straight into the home button and the two lesson arrows,
+     which are fixed in the top left corner and reach 92px down. The last דו — the whole point of
+     this screen, the one that lights up together with the first דו to show we came back — was the
+     one underneath them. Measured at 390px: the last two chips sat at 55-117, right through the
+     buttons; at 320px three of them did.
+
+     The buttons are platform-wide and do not move, so this screen moves instead. Padding rather
+     than a smaller row: the characters stay the size a four-year-old can see. 80px puts the row at
+     101, nine clear of the buttons. */
+  @media (max-width: 640px) {
+    .finale{ padding-top: 80px; }
+  }
+
   .finale .score-line{ font-family:var(--font-display); font-weight:700; font-size:21px; color:var(--ink); }
 
   .confetti-piece{ position:fixed; top:-10px; width:9px; height:14px; border-radius:2px; z-index:60; pointer-events:none; }
@@ -1482,8 +1495,12 @@
     var isBest = game.score > best;
     if(isBest){ try { localStorage.setItem("solGameBestScore", String(game.score)); } catch(e){} }
     setTimeout(function(){
-      titleEl.textContent = "שמתם לב? חזרנו לדו!";
-      textEl.textContent = "התחלנו ב-דו (מימין) וסיימנו שוב ב-דו (משמאל) - אותה דמות בדיוק! דו־רה־מי־פה־סול־לה־סי־דו: הקפנו סיבוב שלם, בדיוק כמו אוקטבה בפסנתר.";
+      // Hani's own wording, with niqqud, approved 2026-08-25. The niqqud is the point: this is the
+      // sentence that names the octave, and a four-to-eight-year-old is still sounding words out.
+      // Keep the vowel points if this text is ever edited. innerHTML rather than textContent only
+      // so the blank line before the last sentence survives.
+      titleEl.textContent = "הִצְלַחְתֶּם! חָזַרְנוּ לְדוֹ!";
+      textEl.innerHTML = "עָבַרְנוּ דֶּרֶךְ כָּל מִשְׁפַּחַת הַתָּוִים, וְהִגַּעְנוּ לַדּוֹ הַבָּא – רַק גָּבוֹהַ יוֹתֵר! 🎵<br><br>לַדֶּרֶךְ הַזֹּאת, מִדּוֹ עַד דּוֹ, קוֹרְאִים אוֹקְטָבָה";
       scoreEl.textContent = "ניקוד סופי: " + game.score + " נקודות" + (isBest ? " — שיא חדש!" : "");
       chips[0].classList.add("same-highlight");
       chips[7].classList.add("same-highlight");
